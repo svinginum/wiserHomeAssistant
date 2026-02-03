@@ -43,7 +43,6 @@ from .const import (
     SIGNAL_STRENGTH_ICONS,
     VERSION,
 )
-from .events import WISER_BUTTON_PANEL_EVENT
 from .helpers import get_device_name, get_unique_id, get_identifier
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,11 +69,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
                 if hasattr(dev, "battery"):
                     wiser_sensors.append(
                         WiserBatterySensor(data, dev.id, sensor_type="Battery")
-                    )
-
-                if getattr(dev, "product_type", None) == "ButtonPanel":
-                    wiser_sensors.append(
-                        WiserButtonPanelLastButtonSensor(data, dev.id)
                     )
 
                 # Add threshold temp sensors
@@ -444,128 +438,6 @@ class WiserBatterySensor(WiserSensor):
             "model": self._device.product_type,
             "sw_version": self._device.firmware_version,
             "via_device": (DOMAIN, self._data.wiserhub.system.name),
-        }
-
-
-class WiserButtonPanelLastButtonSensor(WiserSensor):
-    """Sensor for Wiser 4-button wireless switch: state is last button pressed (button_1..button_4 or None)."""
-
-    def __init__(self, data, device_id: int) -> None:
-        """Initialise the button panel sensor."""
-        super().__init__(data, device_id, "Last Button Pressed")
-        self._panel = data.wiserhub.devices.get_by_id(device_id)
-        self._state = "None"
-        self._last_button_number = None
-        self._last_press_type = "short"
-        self._prev_events_length = 0
-
-    @staticmethod
-    def _button_number_from_event(event: dict) -> int | None:
-        """Extract 1-based button index from hub event dict."""
-        if not isinstance(event, dict):
-            return None
-        for key in ("ButtonId", "Gang", "Button", "Id", "ButtonNumber"):
-            val = event.get(key)
-            if isinstance(val, int) and 1 <= val <= 4:
-                return val
-        return None
-
-    @staticmethod
-    def _press_type_from_event(event: dict) -> str:
-        """Extract 'short' or 'long' from hub event dict (e.g. for dimming hold)."""
-        if not isinstance(event, dict):
-            return "short"
-        action = event.get("Action") or event.get("PressType") or event.get("EventType") or ""
-        if isinstance(action, str):
-            action_lower = action.lower()
-            if "long" in action_lower or "hold" in action_lower:
-                return "long"
-        if event.get("LongPress") is True:
-            return "long"
-        if isinstance(event.get("Duration"), (int, float)) and event.get("Duration", 0) > 500:
-            return "long"
-        return "short"
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Update state from panel.events and fire event on new button press."""
-        super()._handle_coordinator_update()
-        self._panel = self._data.wiserhub.devices.get_by_id(self._device_id)
-        events = getattr(self._panel, "events", None) or []
-        if not isinstance(events, list):
-            events = []
-
-        button_number = None
-        press_type = "short"
-        if events:
-            last_event = events[-1] if events else None
-            if isinstance(last_event, dict):
-                button_number = self._button_number_from_event(last_event)
-                if button_number is None and "ButtonId" in last_event:
-                    button_number = last_event.get("ButtonId")
-                press_type = self._press_type_from_event(last_event)
-                if button_number is not None:
-                    self._state = f"button_{button_number}" + ("_long" if press_type == "long" else "")
-                    self._last_button_number = button_number
-                    self._last_press_type = press_type
-                else:
-                    self._state = "None"
-            else:
-                self._state = "None"
-        else:
-            self._state = "None"
-
-        # Fire event only when hub added new event(s), not on every poll or initial load
-        prev_len = self._prev_events_length
-        self._prev_events_length = len(events)
-        if button_number is not None and len(events) > prev_len:
-            self.hass.bus.fire(
-                WISER_BUTTON_PANEL_EVENT,
-                {
-                    "entity_id": self.entity_id,
-                    "button_number": button_number,
-                    "press_type": press_type,
-                    "device_id": self._device_id,
-                },
-            )
-
-        self.async_write_ha_state()
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{get_device_name(self._data, self._device_id)} {self._sensor_type}"
-
-    @property
-    def unique_id(self):
-        """Return unique id (used by device triggers to find button panel)."""
-        return get_unique_id(
-            self._data, "sensor", f"button_panel_last_button_{self._device_id}", self._device_id
-        )
-
-    @property
-    def device_info(self):
-        """Return device specific attributes."""
-        return {
-            "name": get_device_name(self._data, self._device_id),
-            "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
-            "manufacturer": MANUFACTURER,
-            "model": getattr(self._panel, "product_type", "ButtonPanel"),
-            "sw_version": getattr(self._panel, "firmware_version", ""),
-            "via_device": (DOMAIN, self._data.wiserhub.system.name),
-        }
-
-    @property
-    def icon(self):
-        """Return icon."""
-        return "mdi:gesture-tap-button"
-
-    @property
-    def extra_state_attributes(self):
-        """Return the device state attributes."""
-        return {
-            "last_button_number": self._last_button_number,
-            "last_press_type": getattr(self, "_last_press_type", "short"),
         }
 
 

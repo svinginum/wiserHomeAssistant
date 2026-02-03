@@ -91,15 +91,7 @@
       "stopped_heating": "{entity_name} stops heating",
       "boosted": "{entity_name} is boosted",
       "target_temperature_increased": "{entity_name} target temperature increased",
-      "target_temperature_decreased": "{entity_name} target temperature decreased",
-      "button_1_pressed": "Button 1 pressed",
-      "button_2_pressed": "Button 2 pressed",
-      "button_3_pressed": "Button 3 pressed",
-      "button_4_pressed": "Button 4 pressed",
-      "button_1_long_pressed": "Button 1 long pressed",
-      "button_2_long_pressed": "Button 2 long pressed",
-      "button_3_long_pressed": "Button 3 long pressed",
-      "button_4_long_pressed": "Button 4 long pressed"
+      "target_temperature_decreased": "{entity_name} target temperature decreased"
     }
   }
 }

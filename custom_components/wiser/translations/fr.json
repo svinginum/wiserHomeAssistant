@@ -82,15 +82,7 @@
       "stopped_heating": "{entity_name} chauffe arrêté",
       "boosted": "{entity_name} est boosté",
       "target_temperature_increased": "{entity_name} température cible a diminué",
-      "target_temperature_decreased": "{entity_name} température cible augmentée",
-      "button_1_pressed": "Bouton 1 enfoncé",
-      "button_2_pressed": "Bouton 2 enfoncé",
-      "button_3_pressed": "Bouton 3 enfoncé",
-      "button_4_pressed": "Bouton 4 enfoncé",
-      "button_1_long_pressed": "Bouton 1 enfoncé longuement",
-      "button_2_long_pressed": "Bouton 2 enfoncé longuement",
-      "button_3_long_pressed": "Bouton 3 enfoncé longuement",
-      "button_4_long_pressed": "Bouton 4 enfoncé longuement"
+      "target_temperature_decreased": "{entity_name} température cible augmentée"
     }
   }
 }

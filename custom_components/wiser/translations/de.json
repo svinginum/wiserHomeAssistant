@@ -81,15 +81,7 @@
       "stopped_heating": "{entity_name} stoppt die Heizung",
       "boosted": "{entity_name} wird verstärkt",
       "target_temperature_increased": "{entity_name} zieltemperatur erhöht",
-      "target_temperature_decreased": "{entity_name} zieltemperatur gesenkt",
-      "button_1_pressed": "Taste 1 gedrückt",
-      "button_2_pressed": "Taste 2 gedrückt",
-      "button_3_pressed": "Taste 3 gedrückt",
-      "button_4_pressed": "Taste 4 gedrückt",
-      "button_1_long_pressed": "Taste 1 lange gedrückt",
-      "button_2_long_pressed": "Taste 2 lange gedrückt",
-      "button_3_long_pressed": "Taste 3 lange gedrückt",
-      "button_4_long_pressed": "Taste 4 lange gedrückt"
+      "target_temperature_decreased": "{entity_name} zieltemperatur gesenkt"
     }
   }
 }
