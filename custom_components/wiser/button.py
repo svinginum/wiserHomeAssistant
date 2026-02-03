@@ -266,6 +266,9 @@ class WiserMomentsButton(WiserButton):
     async def async_press(self):
         """Handle button press."""
         await self._data.wiserhub.moments.get_by_id(self._moment_id).activate()
+        # Track so moment sensors can show active when triggered from HA (hub may not report app triggers)
+        self._data.last_activated_moment_id = self._moment_id
+        self._data.last_activated_moment_time = dt_util.utcnow()
         await self.async_force_update()
 
     @property

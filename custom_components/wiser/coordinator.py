@@ -179,6 +179,10 @@ class WiserUpdateCoordinator(DataUpdateCoordinator):
         # HW climate mode
         self.wiserhub.api_parameters.hw_climate_mode = self.enable_hw_climate
 
+        # Track last moment activated from HA (hub may not report active moment when triggered from app)
+        self.last_activated_moment_id = None
+        self.last_activated_moment_time = None
+
     async def async_update_data(self) -> WiserData:
         """Update data from hub."""
         try:

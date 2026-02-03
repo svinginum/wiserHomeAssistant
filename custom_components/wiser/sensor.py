@@ -30,6 +30,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from aioWiserHeatAPI.wiserhub import TEMP_OFF
 
@@ -850,20 +851,44 @@ class WiserSystemCloudSensor(WiserSensor):
         return "mdi:cloud-alert"
 
 
+# Seconds to show moment as active after HA button press (hub often doesn't report app-triggered moments)
+_MOMENT_ACTIVE_FALLBACK_SECONDS = 90
+
+
 def _get_active_moment_id(data):
-    """Return the currently active moment id from hub domain data, or None."""
+    """Return the currently active moment id from hub domain data, or from last HA trigger fallback."""
     raw = getattr(data.wiserhub, "raw_hub_data", None) or {}
     domain = raw.get("Domain", {})
     system = domain.get("System", {})
     moment_list = domain.get("Moment") or []
 
+    active_id = None
     for key in ("ActiveMomentId", "TriggeredMomentId", "CurrentMomentId"):
         active_id = system.get(key)
         if active_id is not None:
             return active_id
     for m in moment_list:
         if m.get("IsActive") or m.get("Triggered"):
-            return m.get("id")
+            active_id = m.get("id")
+            if active_id is not None:
+                return active_id
+
+    # Hub may not expose active moment when triggered from Wiser app - log so we can find the right field
+    if data.wiserhub.moments and data.wiserhub.moments.count:
+        _LOGGER.debug(
+            "Moments: hub did not report active moment. System keys: %s; Moment sample keys: %s",
+            list(system.keys()),
+            list(moment_list[0].keys()) if moment_list else [],
+        )
+
+    # Fallback: show moment as active for a short time after user triggers it from HA
+    last_id = getattr(data, "last_activated_moment_id", None)
+    last_time = getattr(data, "last_activated_moment_time", None)
+    if last_id is not None and last_time is not None:
+        elapsed = (dt_util.utcnow() - last_time).total_seconds()
+        if elapsed >= 0 and elapsed <= _MOMENT_ACTIVE_FALLBACK_SECONDS:
+            return last_id
+
     return None
 
 
