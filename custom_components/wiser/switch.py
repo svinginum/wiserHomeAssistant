@@ -1,4 +1,4 @@
-"""
+""" switch.py
 Switch  Platform Device for Wiser Rooms.
 
 https://github.com/asantaga/wiserHomeAssistantPlatform
@@ -146,10 +146,25 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
                 )
 
     # Add Lights (if any)
-    for light in data.wiserhub.devices.lights.all:
-        wiser_switches.extend(
-            [WiserLightAwayActionSwitch(data, light.id, f"Wiser {light.name}")]
-        )
+    def flatten_lights(items):
+        """Recursively flatten nested lists."""
+        flat_list = []
+        for item in items:
+            if isinstance(item, list):
+                flat_list.extend(flatten_lights(item))
+            else:
+                flat_list.append(item)
+        return flat_list
+
+    all_lights = flatten_lights(data.wiserhub.devices.lights.all)
+
+    for light in all_lights:
+        try:
+            wiser_switches.extend(
+                [WiserLightAwayActionSwitch(data, light.id, f"Wiser {light.name}")]
+            )
+        except Exception as e:
+            _LOGGER.error(f"Error setting up light switch for {light.id}: {e}")
 
     # Add Shutters (if any)
     for shutter in data.wiserhub.devices.shutters.all:
@@ -266,7 +281,7 @@ class WiserSwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def unique_id(self):
-        return get_unique_id(self._data, self._type, "switch", self.name)
+        return get_unique_id(self._data, self._type, "switch", 0)  # Changed from self._device_id
 
     @property
     def is_on(self):
@@ -501,7 +516,7 @@ class WiserSmartPlugSwitch(WiserSwitch, WiserScheduleEntity):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, self._device.product_type, self.name, self._device_id
+            self._data, self._device.product_type, "switch", self._device_id  # Changed from self.name
         )
 
     @property
@@ -586,7 +601,7 @@ class WiserSmartPlugAwayActionSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, self._smartplug.product_type, self.name, self._smart_plug_id
+            self._data, self._smartplug.product_type, "away_action", self._smart_plug_id  # Changed from self.name
         )
 
     @property
@@ -624,15 +639,25 @@ class WiserLightAwayActionSwitch(WiserSwitch):
         self._name = name
         self._light_id = LightId
         super().__init__(data, name, "", "light", "mdi:lightbulb-off-outline")
-        self._light = self._data.wiserhub.devices.get_by_id(self._light_id)
-        self._is_on = True if self._light.away_mode_action == "Off" else False
+        device = self._data.wiserhub.devices.get_by_id(self._light_id)
+        # Handle multi-contact devices
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._light = device
+        if self._light:
+            self._is_on = True if self._light.away_mode_action == "Off" else False
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Async Update to HA."""
         super()._handle_coordinator_update()
-        self._light = self._data.wiserhub.devices.get_by_id(self._light_id)
-        self._is_on = True if self._light.away_mode_action == "Off" else False
+        device = self._data.wiserhub.devices.get_by_id(self._light_id)
+        # Handle multi-contact devices
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._light = device
+        if self._light:
+            self._is_on = True if self._light.away_mode_action == "Off" else False
         self.async_write_ha_state()
 
     @property
@@ -644,7 +669,7 @@ class WiserLightAwayActionSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, self._light.product_type, self.name, self._light_id
+            self._data, self._light.product_type, "away_action", self._light_id  # Changed from self.name
         )
 
     @property
@@ -702,7 +727,7 @@ class WiserShutterAwayActionSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, self._shutter.product_type, self.name, self._shutter_id
+            self._data, self._shutter.product_type, "away_action", self._shutter_id  # Changed from self.name
         )
 
     @property
@@ -763,7 +788,7 @@ class WiserPassiveModeSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, "passive-mode-switch", self.name, self._room_id
+            self._data, "passive-mode-switch", "switch", self._room_id  # Changed from self.name
         )
 
     @property
@@ -828,7 +853,7 @@ class WiserShutterSummerComfortSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         return get_unique_id(
-            self._data, self._shutter.product_type, self.name, self._shutter_id
+            self._data, self._shutter.product_type, "summer_comfort", self._shutter_id  # Changed from self.name
         )
 
     @property
@@ -899,7 +924,7 @@ class WiserInteractsRoomClimateSwitch(WiserSwitch):
     def unique_id(self):
         """Return unique Id."""
         uid = get_unique_id(
-            self._data, self._device.product_type, self.name, self._device_id
+            self._data, self._device.product_type, "interacts_climate", self._device_id  # Better component_id
         )
         return (
             f"{uid}_{self._ancillary_sensor_id}" if self._ancillary_sensor_id else uid

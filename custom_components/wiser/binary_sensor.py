@@ -1,4 +1,4 @@
-"""Binary sensors."""
+"""Binary sensors.py"""
 
 import logging
 
@@ -64,15 +64,30 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
         )
 
     # Light sensors
-    for device in data.wiserhub.devices.lights.all:
-        binary_sensors.extend(
-            [
-                WiserStateIsDimmable(data, device.id, "Is Dimmable"),
-                WiserStateIsDimmable(data, device.id, "Is LED Indicator Supported"),
-                WiserStateIsDimmable(data, device.id, "Is Output Mode Supported"),
-                WiserStateIsDimmable(data, device.id, "Is Power On Behaviour Supported"),
-            ]
-        )
+    def flatten_devices(items):
+        """Recursively flatten nested lists."""
+        flat_list = []
+        for item in items:
+            if isinstance(item, list):
+                flat_list.extend(flatten_devices(item))
+            else:
+                flat_list.append(item)
+        return flat_list
+
+    all_lights = flatten_devices(data.wiserhub.devices.lights.all)
+
+    for device in all_lights:
+        try:
+            binary_sensors.extend(
+                [
+                    WiserStateIsDimmable(data, device.id, "Is Dimmable"),
+                    WiserStateIsDimmable(data, device.id, "Is LED Indicator Supported"),
+                    WiserStateIsDimmable(data, device.id, "Is Output Mode Supported"),
+                    WiserStateIsDimmable(data, device.id, "Is Power On Behaviour Supported"),
+                ]
+            )
+        except Exception as e:
+            _LOGGER.error(f"Error setting up binary sensor for light {device.id if hasattr(device, 'id') else 'unknown'}: {e}")
 
     # Shutter binary sensors
     for device in data.wiserhub.devices.shutters.all:
@@ -100,15 +115,23 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._data = coordinator
-        self._device = self._data.wiserhub.devices.get_by_id(device_id)
+        device = self._data.wiserhub.devices.get_by_id(device_id)
+        # Handle multi-contact devices returning lists
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._device = device
         self._device_id = device_id
         self._device_name = None
         self._sensor_type = sensor_type
         self._device_data_key = device_data_key
 
         _LOGGER.info(
-            f"{self._data.wiserhub.system.name} {self.name} initalise"  # noqa: E501
+            f"{self._data.wiserhub.system.name} {self.name} initalise"
         )
+
+        if self._device is None:
+            _LOGGER.error(f"No device found for ID {device_id}")
+            return
 
         if device_data_key and hasattr(self._device, device_data_key):
             self._state = getattr(
@@ -124,7 +147,15 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         _LOGGER.debug(f"{self.name} device update requested")
-        self._device = self._data.wiserhub.devices.get_by_id(self._device_id)
+        device = self._data.wiserhub.devices.get_by_id(self._device_id)
+        # Handle multi-contact devices
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._device = device
+        
+        if self._device is None:
+            return
+            
         if self._device_data_key and hasattr(self._device, self._device_data_key):
             self._state = getattr(
                 getattr(self._device, self._device_data_key),
@@ -150,7 +181,7 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def unique_id(self):
         """Return uniqueid."""
-        return get_unique_id(self._data, "binary_sensor", self._sensor_type, self.name)
+        return get_unique_id(self._data, "binary_sensor", self._sensor_type, self._device_id)
 
     @property
     def device_info(self):

@@ -1,4 +1,4 @@
-"""Support for Wiser lights via Wiser Hub"""
+"""light.py"""
 
 import asyncio
 import logging
@@ -11,7 +11,7 @@ from homeassistant.components.light import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DATA, DOMAIN, MANUFACTURER_SCHNEIDER
+from .const import DATA, DOMAIN, MANUFACTURER_SCHNEIDER, ENTITY_PREFIX
 from .helpers import get_device_name, get_identifier, get_unique_id, hub_error_handler
 from .schedules import WiserScheduleEntity
 
@@ -27,27 +27,51 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     wiser_lights = []
     if data.wiserhub.devices.lights:
         _LOGGER.debug("Setting up light entities")
-        for light in data.wiserhub.devices.lights.all:
-            if light.is_dimmable:
-                wiser_lights.append(WiserDimmableLight(data, light.id))
-            else:
-                wiser_lights.append(WiserLight(data, light.id))
+        
+        def flatten_lights(items):
+            """Recursively flatten nested lists of lights."""
+            flat_list = []
+            for item in items:
+                if isinstance(item, list):
+                    flat_list.extend(flatten_lights(item))
+                else:
+                    flat_list.append(item)
+            return flat_list
+        
+        all_lights = flatten_lights(data.wiserhub.devices.lights.all)
+        
+        for light in all_lights:
+            try:
+                _LOGGER.warning(f"Processing light: ID={light.id}, Name={light.name}, Endpoint={getattr(light, 'endpoint', 'N/A')}, Dimmable={light.is_dimmable}")
+                if light.is_dimmable:
+                    wiser_lights.append(WiserDimmableLight(data, light))  # Pass whole object
+                else:
+                    wiser_lights.append(WiserLight(data, light))  # Pass whole object
+            except Exception as e:
+                _LOGGER.error(f"Error setting up light {light.id if hasattr(light, 'id') else 'unknown'}: {e}")
+                
         async_add_entities(wiser_lights, True)
 
 
 class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
     """WiserLight ClientEntity Object."""
 
-    def __init__(self, coordinator, light_id) -> None:
+    def __init__(self, coordinator, light_device) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._data = coordinator
-        self._device_id = light_id
-        self._device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        self._device = light_device  # Store the actual device object
+        self._device_id = light_device.id
+        
+        if self._device is None:
+            _LOGGER.error(f"No device found")
+            return
+            
         self._schedule = self._device.schedule
         _LOGGER.debug(f"{self._data.wiserhub.system.name} {self.name} initialise")
 
     async def async_force_update(self, delay: int = 0):
+        """Force update the coordinator."""
         _LOGGER.debug(f"Hub update initiated by {self.name}")
         if delay:
             await asyncio.sleep(delay)
@@ -56,8 +80,23 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         _LOGGER.debug(f"{self.name} updating")
-        self._device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
-        self._schedule = self._device.schedule
+    
+        # Get updated device list
+        device_list = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        
+        # Find the device with matching endpoint
+        if isinstance(device_list, list):
+            # Find our specific endpoint
+            original_endpoint = self._device.endpoint
+            for dev in device_list:
+                if dev.endpoint == original_endpoint:
+                    self._device = dev
+                    break
+        else:
+            self._device = device_list
+        
+        if self._device:
+            self._schedule = self._device.schedule
         self.async_write_ha_state()
 
     @property
@@ -78,7 +117,25 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
     @property
     def name(self):
         """Return the name of the Device."""
-        return f"{get_device_name(self._data, self._device.id)} Light"
+        # Use the actual contact name from the device
+        contact_name = self._device.name
+        
+        # Get the room name
+        room = self._data.wiserhub.rooms.get_by_id(self._device.room_id)
+        room_name = room.name if room else "Unassigned"
+        
+        # For multi-contact devices, add position suffix
+        device_list = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        if isinstance(device_list, list) and len(device_list) > 1:
+            if self._device.endpoint == 1:
+                position = "Top"
+            elif self._device.endpoint == 2:
+                position = "Bottom"
+            else:
+                position = f"Ep{self._device.endpoint}"
+            return f"{ENTITY_PREFIX} {contact_name} {position}"
+        
+        return f"{ENTITY_PREFIX} {contact_name}"
 
     @property
     def icon(self):
@@ -90,7 +147,8 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
 
     @property
     def unique_id(self):
-        return get_unique_id(self._data, "device", "light", self.name)
+        endpoint_suffix = f"-ep{self._device.endpoint}" if hasattr(self._device, 'endpoint') and self._device.endpoint else ""
+        return f"{self._data.wiserhub.system.name}-device-light-{self._device_id}{endpoint_suffix}"
 
     @property
     def device_info(self):

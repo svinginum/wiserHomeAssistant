@@ -1,4 +1,4 @@
-"""
+""" sensor.py
 Sensor Platform Device for Wiser System.
 
 https://github.com/asantaga/wiserHomeAssistantPlatform
@@ -49,7 +49,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entities):
     """Initialize the entry."""
-    data = hass.data[DOMAIN][config_entry.entry_id][DATA]  # Get Handler
+    data = hass.data[DOMAIN][config_entry.entry_id][DATA]
     wiser_sensors = []
 
     # Add signal sensors for all devices
@@ -59,41 +59,44 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     wiser_sensors.append(WiserDeviceSignalSensor(data, 0, "Controller"))
     if data.wiserhub.devices:
         for device in data.wiserhub.devices.all:
-            wiser_sensors.append(
-                WiserDeviceSignalSensor(data, device.id, device.product_type)
-            )
-            if hasattr(device, "battery"):
+            # Handle multi-contact devices
+            device_list = device if isinstance(device, list) else [device]
+            for dev in device_list:
                 wiser_sensors.append(
-                    WiserBatterySensor(data, device.id, sensor_type="Battery")
+                    WiserDeviceSignalSensor(data, dev.id, dev.product_type)
                 )
+                if hasattr(dev, "battery"):
+                    wiser_sensors.append(
+                        WiserBatterySensor(data, dev.id, sensor_type="Battery")
+                    )
 
-            # Add threshold temp sensors
-            if hasattr(device, "threshold_sensors"):
-                for threshold_sensor in getattr(device, "threshold_sensors"):
-                    if threshold_sensor.quantity == "Temperature":
-                        wiser_sensors.append(
-                            WiserThresholdTempSensor(
-                                data, device.id, "threshold_temp", threshold_sensor.id
+                # Add threshold temp sensors
+                if hasattr(dev, "threshold_sensors"):
+                    for threshold_sensor in getattr(dev, "threshold_sensors"):
+                        if threshold_sensor.quantity == "Temperature":
+                            wiser_sensors.append(
+                                WiserThresholdTempSensor(
+                                    data, dev.id, "threshold_temp", threshold_sensor.id
+                                )
                             )
-                        )
-                    elif threshold_sensor.quantity == "Humidity":
-                        wiser_sensors.append(
-                            WiserThresholdHumiditySensor(
-                                data,
-                                device.id,
-                                "threshold_humidity",
-                                threshold_sensor.id,
+                        elif threshold_sensor.quantity == "Humidity":
+                            wiser_sensors.append(
+                                WiserThresholdHumiditySensor(
+                                    data,
+                                    dev.id,
+                                    "threshold_humidity",
+                                    threshold_sensor.id,
+                                )
                             )
-                        )
-                    elif threshold_sensor.quantity == "LightLevel":
-                        wiser_sensors.append(
-                            WiserThresholdLightLevelSensor(
-                                data,
-                                device.id,
-                                "threshold_lightlevel",
-                                threshold_sensor.id,
+                        elif threshold_sensor.quantity == "LightLevel":
+                            wiser_sensors.append(
+                                WiserThresholdLightLevelSensor(
+                                    data,
+                                    dev.id,
+                                    "threshold_lightlevel",
+                                    threshold_sensor.id,
+                                )
                             )
-                        )
 
     # Add cloud status sensor
     _LOGGER.debug("Setting up Cloud sensor")
@@ -439,8 +442,14 @@ class WiserDeviceSignalSensor(WiserSensor):
         if self._device_id == 0:
             self._device = self._data.wiserhub.system
         else:
-            self._device = self._data.wiserhub.devices.get_by_id(self._device_id)
-        self._state = self._device.signal.displayed_signal_strength
+            device = self._data.wiserhub.devices.get_by_id(self._device_id)
+            # Handle multi-contact devices
+            if isinstance(device, list):
+                device = device[0] if len(device) > 0 else None
+            self._device = device
+        
+        if self._device:
+            self._state = self._device.signal.displayed_signal_strength
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -449,8 +458,14 @@ class WiserDeviceSignalSensor(WiserSensor):
         if self._device_id == 0:
             self._device = self._data.wiserhub.system
         else:
-            self._device = self._data.wiserhub.devices.get_by_id(self._device_id)
-        self._state = self._device.signal.displayed_signal_strength
+            device = self._data.wiserhub.devices.get_by_id(self._device_id)
+            # Handle multi-contact devices
+            if isinstance(device, list):
+                device = device[0] if len(device) > 0 else None
+            self._device = device
+        
+        if self._device:
+            self._state = self._device.signal.displayed_signal_strength
         self.async_write_ha_state()
 
     async def async_update(self) -> None:

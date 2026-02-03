@@ -29,7 +29,11 @@ def hub_error_handler(func):
 def get_device_name(data, device_id, device_type="device"):
     if device_type == "device":
         device = data.wiserhub.devices.get_by_id(device_id)
-
+        
+        # Handle multi-contact devices that return lists
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        
         if device_id == 0:
             return f"{ENTITY_PREFIX} HeatHub ({data.wiserhub.system.name})"
 
@@ -116,8 +120,20 @@ def get_identifier(data, device_id, device_type="device"):
     )
 
 
-def get_unique_id(data, device_type, entity_type, device_id):
-    return f"{data.wiserhub.system.name}-{device_type}-{entity_type}-{device_id}"
+def get_unique_id(data, component_type, component_id, device_id=0):
+    device = data.wiserhub.devices.get_by_id(device_id) if device_id else None
+    
+    # Handle multi-contact devices that return lists
+    if isinstance(device, list):
+        device = device[0] if len(device) > 0 else None
+    
+    # Include endpoint for multi-contact devices
+    if device and hasattr(device, 'endpoint') and device.endpoint:
+        endpoint_suffix = f"-ep{device.endpoint}"
+    else:
+        endpoint_suffix = ""
+    
+    return f"{data.wiserhub.system.name}-{component_type}-{component_id}-{device_id}{endpoint_suffix}"
 
 
 def get_room_name(data, room_id):

@@ -1,3 +1,4 @@
+""" select.py """
 import logging
 import asyncio
 from .const import (
@@ -34,18 +35,32 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
 
     if data.wiserhub.devices.lights.count > 0:
         _LOGGER.debug("Setting up Light mode select")
-        for light in data.wiserhub.devices.lights.all:
-            wiser_selects.extend([WiserLightModeSelect(data, light.id)])
-            if light.is_led_indicator_supported:
-                wiser_selects.extend([WiserLightLedIndicatorSelect(data, light.id)])
+        def flatten_lights(items):
+            """Recursively flatten nested lists of lights."""
+            flat_list = []
+            for item in items:
+                if isinstance(item, list):
+                    flat_list.extend(flatten_lights(item))
+                else:
+                    flat_list.append(item)
+            return flat_list
 
-            if light.is_dimmable:
-#                if light.is_led_indicator_supported:
-#                    wiser_selects.extend([WiserLightLedIndicatorSelect(data, light.id)])
-                if light.is_power_on_behaviour_supported:
-                    wiser_selects.extend(
-                        [WiserLightPowerOnBehaviourSelect(data, light.id)]
-                    )
+        all_lights = flatten_lights(data.wiserhub.devices.lights.all)
+
+        for light in all_lights:
+            try:
+                _LOGGER.debug(f"Processing light select: ID={light.id}, Name={light.name}")
+                wiser_selects.extend([WiserLightModeSelect(data, light.id)])
+                if light.is_led_indicator_supported:
+                    wiser_selects.extend([WiserLightLedIndicatorSelect(data, light.id)])
+
+                if light.is_dimmable:
+                    if light.is_power_on_behaviour_supported:
+                        wiser_selects.extend(
+                            [WiserLightPowerOnBehaviourSelect(data, light.id)]
+                        )
+            except Exception as e:
+                _LOGGER.error(f"Error setting up light select for {light.id if hasattr(light, 'id') else 'unknown'}: {e}")
 
     if data.wiserhub.devices.shutters.count > 0:
         _LOGGER.debug("Setting up Shutter mode select")
@@ -230,7 +245,14 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
         """Initialize the sensor."""
         self._device_id = light_id
         super().__init__(data)
-        self._device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        # Handle multi-contact devices returning lists
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._device = device
+        if self._device is None:
+            _LOGGER.error(f"No light device found for ID {self._device_id}")
+            return
         self._options = self._device.available_modes
         self._schedule = self._device.schedule
 
@@ -238,8 +260,12 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
     def _handle_coordinator_update(self) -> None:
         """Fetch new state data for the sensor."""
         super()._handle_coordinator_update()
-        self._device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
-        self._schedule = self._device.schedule
+        device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
+        if isinstance(device, list):
+            device = device[0] if len(device) > 0 else None
+        self._device = device
+        if self._device:
+            self._schedule = self._device.schedule
         self.async_write_ha_state()
 
 
