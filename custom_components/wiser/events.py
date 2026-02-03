@@ -20,6 +20,7 @@ VALUE_DEC = "dec"
 VALUE_DIFF = "diff"
 
 WISER_EVENT = "wiser_event"
+WISER_BUTTON_PANEL_EVENT = "wiser_button_panel_pressed"
 
 WISER_EVENTS = [
     {
