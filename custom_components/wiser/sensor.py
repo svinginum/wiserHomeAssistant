@@ -102,6 +102,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     _LOGGER.debug("Setting up Cloud sensor")
     wiser_sensors.append(WiserSystemCloudSensor(data, sensor_type="Cloud"))
 
+    # Add active moment sensor when hub has moments (shows which moment is active on hub)
+    if data.wiserhub.moments:
+        _LOGGER.debug("Setting up Active Moment sensor")
+        wiser_sensors.append(WiserActiveMomentSensor(data))
+
     # Add operation sensor
     _LOGGER.debug("Setting up Heating Operation Mode sensor")
     wiser_sensors.append(
@@ -841,6 +846,58 @@ class WiserSystemCloudSensor(WiserSensor):
         if self._state == "Connected":
             return "mdi:cloud-check"
         return "mdi:cloud-alert"
+
+
+class WiserActiveMomentSensor(WiserSensor):
+    """Sensor showing the currently active Wiser Moment (when activated on hub or in HA)."""
+
+    def __init__(self, data) -> None:
+        """Initialise the active moment sensor."""
+        super().__init__(data, 0, "Active Moment")
+        self._active_moment_id = None
+        self._state = "None"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Fetch active moment from hub domain data and update state."""
+        super()._handle_coordinator_update()
+        raw = getattr(self._data.wiserhub, "raw_hub_data", None) or {}
+        domain = raw.get("Domain", {})
+        system = domain.get("System", {})
+        moment_list = domain.get("Moment") or []
+
+        active_id = None
+        for key in ("ActiveMomentId", "TriggeredMomentId", "CurrentMomentId"):
+            active_id = system.get(key)
+            if active_id is not None:
+                break
+        if active_id is None and moment_list:
+            for m in moment_list:
+                if m.get("IsActive") or m.get("Triggered"):
+                    active_id = m.get("id")
+                    break
+
+        self._active_moment_id = active_id
+        if active_id is not None:
+            moment = self._data.wiserhub.moments.get_by_id(active_id)
+            self._state = moment.name if moment else str(active_id)
+        else:
+            self._state = "None"
+        self.async_write_ha_state()
+
+    @property
+    def icon(self):
+        """Return icon."""
+        return "mdi:home-thermometer"
+
+    @property
+    def extra_state_attributes(self):
+        """Return the device state attributes."""
+        attrs = {
+            "active_moment_id": self._active_moment_id,
+            "last_updated": self._data.last_update_time,
+        }
+        return attrs
 
 
 class WiserSystemOperationModeSensor(WiserSensor):
