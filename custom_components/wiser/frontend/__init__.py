@@ -25,7 +25,8 @@ class JSModuleRegistration:
     async def async_register(self):
         """Register view_assist path."""
         await self._async_register_path()
-        if self.lovelace.mode == "storage":
+        # resource_mode: "storage" = UI-managed resources, "yaml" = config-defined
+        if self.lovelace and getattr(self.lovelace, "resource_mode", None) == "storage":
             await self._async_wait_for_lovelace_resources()
 
     # install card resources
@@ -119,7 +120,7 @@ class JSModuleRegistration:
 
     async def async_unregister(self):
         """Unload lovelace module resource."""
-        if self.lovelace.mode == "storage":
+        if self.lovelace and getattr(self.lovelace, "resource_mode", None) == "storage":
             for module in JSMODULES:
                 url = f"{URL_BASE}/{module.get('filename')}"
                 wiser_resources = [
