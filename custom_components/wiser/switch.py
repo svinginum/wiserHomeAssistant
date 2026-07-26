@@ -82,12 +82,6 @@ WISER_SWITCHES = [
         "type": "system",
     },
     {
-        "name": "Summer Discomfort Prevention",
-        "key": "summer_discomfort_prevention",
-        "icon": "mdi:beach",
-        "type": "system",
-    },
-    {
         "name": "Window Detection",
         "key": "window_detection_active",
         "icon": "mdi:window-closed",
@@ -1030,3 +1024,4 @@ class WiserHWClimateManualHeatSwitch(WiserSwitch):
         """Turn off hw climate manual heat."""
         await self._data.wiserhub.hotwater.set_manual_heat(False)
         await self.async_force_update()
+

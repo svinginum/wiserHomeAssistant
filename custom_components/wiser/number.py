@@ -417,3 +417,4 @@ class WiserDiscomfortOutdoorTempNumber(CoordinatorEntity, NumberEntity):
         _LOGGER.debug(f"Setting {self._name} to {value}C")
         await self._data.wiserhub.system.set_outdoor_discomfort_temperature(value)
         await self.async_force_update()
+

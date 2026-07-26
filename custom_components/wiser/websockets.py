@@ -6,6 +6,7 @@ from homeassistant.components.websocket_api import (
     async_register_command,
     ActiveConnection,
 )
+from aioWiserHeatAPI.exceptions import WiserScheduleError
 from aioWiserHeatAPI.schedule import WiserScheduleTypeEnum
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from .const import DATA, DOMAIN
@@ -385,8 +386,25 @@ async def async_register_websockets(hass, data):
             schedule_type_enum = WiserScheduleTypeEnum[schedule_type]
             schedule = d.wiserhub.schedules.get_by_id(schedule_type_enum, schedule_id)
             if schedule:
-                await schedule.delete_schedule()
-                await d.async_refresh()
+                try:
+                    await schedule.delete_schedule()
+                except WiserScheduleError as ex:
+                    await d.async_refresh()
+                    if d.wiserhub.schedules.get_by_id(schedule_type_enum, schedule_id):
+                        connection.send_error(
+                            msg["id"],
+                            "wiser error",
+                            f"Unable to delete schedule. {ex}",
+                        )
+                        return
+                    _LOGGER.warning(
+                        "Schedule %s/%s was deleted despite a hub response error: %s",
+                        schedule_type,
+                        schedule_id,
+                        ex,
+                    )
+                else:
+                    await d.async_refresh()
                 connection.send_result(msg["id"], "success")
             else:
                 connection.send_error(

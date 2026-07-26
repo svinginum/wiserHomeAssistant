@@ -7,7 +7,7 @@ Angelosantagata@gmail.com
 
 from enum import StrEnum
 
-VERSION = "3.4.19"
+VERSION = "3.4.20"
 DOMAIN = "wiser"
 DATA_WISER_CONFIG = "wiser_config"
 URL_BASE = "/wiser"
@@ -16,7 +16,7 @@ JSMODULES = [
     {
         "name": "Wiser Schedule Card",
         "filename": "wiser-schedule-card.js",
-        "version": "1.5.0",
+        "version": "1.5.6",
     },
     {
         "name": "Wiser Zigbee Card",
