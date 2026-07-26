@@ -70,6 +70,7 @@ def _load_sensor_module() -> ModuleType:
         DOMAIN="wiser",
         HOT_WATER="hot_water",
         MANUFACTURER="Drayton",
+        MANUFACTURER_SCHNEIDER="Schneider Electric",
         SIGNAL_STRENGTH_ICONS={},
         VERSION="test",
     )
