@@ -2,6 +2,7 @@ from pathlib import Path
 import unittest
 
 
+import re
 CARD = (
     Path(__file__).resolve().parents[1]
     / "custom_components"
@@ -52,11 +53,11 @@ class ScheduleCardHideHotWaterScheduleTest(unittest.TestCase):
         const_source = CONST.read_text()
 
         self.assertTrue(
-            'const $t="1.5.5"' in card_source,
-            "schedule card should advertise version 1.5.5",
+            'const $t="1.5.6"' in card_source,
+            "schedule card should advertise version 1.5.6",
         )
         self.assertTrue(
-            '"version": "1.5.5"' in const_source,
+            '"version": "1.5.6"' in const_source,
             "registered Lovelace module version should match the card version",
         )
 
@@ -132,6 +133,29 @@ class ScheduleCardHideHotWaterScheduleTest(unittest.TestCase):
             "delete dialog should set expectations for the hub response delay",
         )
 
+    def test_schedule_name_forms_use_current_home_assistant_input(self):
+        card_source = CARD.read_text()
+        inputs = re.findall(
+            r"<ha-input\s+class=\"schedule-name\"(?P<body>.*?)</ha-input>",
+            card_source,
+            re.DOTALL,
+        )
+
+        self.assertEqual(len(inputs), 2)
+        self.assertNotIn("<ha-textfield", card_source)
+        for input_body in inputs:
+            self.assertIn("auto-validate", input_body)
+            self.assertIn("required", input_body)
+            self.assertIn(
+                "validation-message=${Vt(\"wiser.common.name_required\")}",
+                input_body,
+            )
+            self.assertIn("@input=${this._valueChanged}", input_body)
+
+        self.assertIn(".configValue=${\"Name\"}", inputs[0])
+        self.assertIn("value=${this._schedule.Name}", inputs[1])
+        self.assertIn(".configValue=${\"Name\"}", inputs[1])
+        self.assertIn("@input=${this._valueChanged}", card_source)
 
 if __name__ == "__main__":
     unittest.main()
