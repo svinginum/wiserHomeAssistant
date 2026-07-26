@@ -1,4 +1,4 @@
-# Wiser Home Assistant Integration v3.4.19
+# Wiser Home Assistant Integration v3.4.20
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![downloads](https://shields.io/github/downloads/asantaga/wiserHomeAssistantPlatform/latest/total?style=for-the-badge)](https://github.com/asantaga/wiserHomeAssistantPlatform)
@@ -29,6 +29,14 @@ For more information checkout the AMAZING community thread available on
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=asantaga&repository=wiserHomeAssistantPlatform&category=integration)
 
 ## Change log
+
+- v3.4.20
+  - Added equipment data to smart plugs, heating actuators, and PowerTag E devices.
+  - Added LED-indicator support for on/off and dimmable lights.
+  - Added seasonal-comfort controls, including the target lift for shutters.
+  - Added an option to hide the hot-water schedule in the Wiser Schedule Card.
+  - Fixed the controller signal sensor to use the HeatHub name - issue [#639](https://github.com/asantaga/wiserHomeAssistantPlatform/issues/639).
+  - Fixed schedule deletion and schedule-name inputs on current Home Assistant releases - issue [#461](https://github.com/asantaga/wiserHomeAssistantPlatform/issues/461).
 
 - v3.4.19
   - Fixed: Breaking change in HA 2026.2 causes integration not to load - issue [#643](https://github.com/asantaga/wiserHomeAssistantPlatform/issues/643)
