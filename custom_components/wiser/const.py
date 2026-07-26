@@ -16,7 +16,7 @@ JSMODULES = [
     {
         "name": "Wiser Schedule Card",
         "filename": "wiser-schedule-card.js",
-        "version": "1.5.1",
+        "version": "1.5.5",
     },
     {
         "name": "Wiser Zigbee Card",
