@@ -249,6 +249,19 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
             self._schedule = self._device.schedule
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device specific attributes."""
+        if self._data.group_lights_with_room and self._device and self._device.room_id:
+            return {
+                "name": get_device_name(self._data, self._device.room_id, "room"),
+                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
+                "manufacturer": MANUFACTURER,
+                "model": "Room",
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
+        return super().device_info
+
 
 class WiserShutterModeSelect(WiserSelectEntity, WiserScheduleEntity):
     def __init__(self, data, shutter_id) -> None:
@@ -314,6 +327,19 @@ class WiserLightPowerOnBehaviourSelect(WiserSelectEntity):
                 f"{option} is not a valid {self.name}.  Please choose from {self._options}"
             )
 
+    @property
+    def device_info(self):
+        """Return device specific attributes."""
+        if self._data.group_lights_with_room and self._device and self._device.room_id:
+            return {
+                "name": get_device_name(self._data, self._device.room_id, "room"),
+                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
+                "manufacturer": MANUFACTURER,
+                "model": "Room",
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
+        return super().device_info
+
 
 class WiserLightLedIndicatorSelect(WiserSelectEntity):
     def __init__(self, data, light_id) -> None:
@@ -360,3 +386,16 @@ class WiserLightLedIndicatorSelect(WiserSelectEntity):
             _LOGGER.error(
                 f"{option} is not a valid {self.name}.  Please choose from {self._options}"
             )
+
+    @property
+    def device_info(self):
+        """Return device specific attributes."""
+        if self._data.group_lights_with_room and self._device and self._device.room_id:
+            return {
+                "name": get_device_name(self._data, self._device.room_id, "room"),
+                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
+                "manufacturer": MANUFACTURER,
+                "model": "Room",
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
+        return super().device_info

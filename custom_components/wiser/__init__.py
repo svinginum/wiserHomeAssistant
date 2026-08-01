@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 
 from .const import (
@@ -21,7 +22,11 @@ from .const import (
     CONF_AUTOMATIONS_PASSIVE,
     CONF_AUTOMATIONS_PASSIVE_TEMP_INCREMENT,
     CONF_DEPRECATED_HW_TARGET_TEMP,
+    CONF_ENABLE_HEATING_ENTITIES,
+    CONF_GROUP_LIGHTS_WITH_ROOM,
     DATA,
+    DEFAULT_ENABLE_HEATING_ENTITIES,
+    DEFAULT_GROUP_LIGHTS_WITH_ROOM,
     DOMAIN,
     MANUFACTURER,
     UPDATE_LISTENER,
@@ -125,6 +130,9 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(config_entry, WISER_PLATFORMS)
 
+    # Cleanup orphaned devices based on options
+    await async_cleanup_devices(hass, config_entry, coordinator)
+
     # Setup websocket services for frontend cards
     await async_register_websockets(hass, coordinator)
 
@@ -159,6 +167,40 @@ async def async_update_device_registry(hass: HomeAssistant, config_entry):
         model=data.wiserhub.system.model,
         sw_version=data.wiserhub.system.firmware_version,
     )
+
+
+async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
+    """Remove devices that should no longer exist based on current options."""
+    device_registry = dr.async_get(hass)
+    entity_registry = er.async_get(hass)
+
+    # Get all devices for this config entry
+    devices = dr.async_entries_for_config_entry(device_registry, config_entry.entry_id)
+
+    for device in devices:
+        # Skip the hub device
+        if device.model == "Controller":
+            continue
+
+        # If heating is disabled, remove Room devices
+        if not coordinator.enable_heating_entities and device.model == "Room":
+            _LOGGER.debug(f"Removing room device: {device.name} (heating disabled)")
+            # Remove all entities for this device first
+            entities = er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True)
+            for entity in entities:
+                entity_registry.async_remove(entity.entity_id)
+            device_registry.async_remove_device(device.id)
+            continue
+
+        # If group_lights_with_room is enabled, remove separate light devices
+        # (their entities will be re-created under the room device)
+        if coordinator.group_lights_with_room and device.model in ("OnOffLight", "DimmableLight", "LK Switch"):
+            _LOGGER.debug(f"Removing light device: {device.name} (grouped with room)")
+            entities = er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True)
+            for entity in entities:
+                entity_registry.async_remove(entity.entity_id)
+            device_registry.async_remove_device(device.id)
+            continue
 
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):

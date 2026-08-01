@@ -659,6 +659,14 @@ class WiserLightAwayActionSwitch(WiserSwitch):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._data.group_lights_with_room and self._light and self._light.room_id:
+            return {
+                "name": get_device_name(self._data, self._light.room_id, "room"),
+                "identifiers": {(DOMAIN, get_identifier(self._data, self._light.room_id, "room"))},
+                "manufacturer": MANUFACTURER,
+                "model": "Room",
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
         return {
             "name": get_device_name(self._data, self._light_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._light_id))},
