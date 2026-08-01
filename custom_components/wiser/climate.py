@@ -128,6 +128,19 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     """Set up Wiser climate device."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][DATA]  # Get coordinator
 
+    if not coordinator.enable_heating_entities:
+        _LOGGER.debug("Heating entities disabled, skipping climate setup")
+        # Still set up HW climate if enabled
+        if (
+            coordinator.wiserhub.hotwater
+            and coordinator.wiserhub.hotwater.is_climate_mode
+            and coordinator.hw_sensor_entity_id
+        ):
+            _LOGGER.debug("Setting up Hot Water climate entity")
+            wiser_hotwater = WiserHotWater(hass, coordinator)
+            async_add_entities([wiser_hotwater], True)
+        return
+
     if coordinator.wiserhub.rooms:
         _LOGGER.debug("Setting up Room climate entities")
         wiser_rooms = [

@@ -54,7 +54,9 @@
           "heating_boost_time": "Default Heating Boost Duration (mins)",
           "hotwater_boost_time": "Default Hot Water Boost Duration (mins)",
           "setpoint_mode": "Setpoint Mode",
-          "restore_manual_temp_option": "Use This Temperature If No Stored Manual Temperature"
+          "restore_manual_temp_option": "Use This Temperature If No Stored Manual Temperature",
+          "enable_heating_entities": "Enable Heating Entities",
+          "group_lights_with_room": "Group Lights With Room"
         }
       },
       "automation_params": {

@@ -40,9 +40,14 @@ from .const import (
     CONF_HW_BOOST_TIME,
     CONF_RESTORE_MANUAL_TEMP_OPTION,
     CONF_SETPOINT_MODE,
+    CONF_ENABLE_HEATING_ENTITIES,
+    CONF_GROUP_LIGHTS_WITH_ROOM,
     CUSTOM_DATA_STORE,
     DEFAULT_BOOST_TEMP,
     DEFAULT_BOOST_TEMP_TIME,
+    DEFAULT_BOOST_TEMP_TIME,
+    DEFAULT_ENABLE_HEATING_ENTITIES,
+    DEFAULT_GROUP_LIGHTS_WITH_ROOM,
     DEFAULT_HW_AUTO_MODE,
     DEFAULT_HW_BOOST_MODE,
     DEFAULT_HW_HEAT_MODE,
@@ -127,6 +132,14 @@ class WiserUpdateCoordinator(DataUpdateCoordinator):
         )
         self.previous_target_temp_option = config_entry.options.get(
             CONF_RESTORE_MANUAL_TEMP_OPTION, "Schedule"
+        )
+
+        # Display options
+        self.enable_heating_entities = config_entry.options.get(
+            CONF_ENABLE_HEATING_ENTITIES, DEFAULT_ENABLE_HEATING_ENTITIES
+        )
+        self.group_lights_with_room = config_entry.options.get(
+            CONF_GROUP_LIGHTS_WITH_ROOM, DEFAULT_GROUP_LIGHTS_WITH_ROOM
         )
 
         # Passive Mode Automation option params

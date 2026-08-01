@@ -105,14 +105,6 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
     @property
     def name(self):
         """Return the name of the Device."""
-        # Use the actual contact name from the device
-        contact_name = self._device.name
-        
-        # Get the room name
-        room = self._data.wiserhub.rooms.get_by_id(self._device.room_id)
-        room_name = room.name if room else "Unassigned"
-        
-        # For multi-contact devices, add position suffix
         device_list = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
         if isinstance(device_list, list) and len(device_list) > 1:
             if self._device.endpoint == 1:
@@ -121,9 +113,9 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
                 position = "Bottom"
             else:
                 position = f"Ep{self._device.endpoint}"
-            return f"{ENTITY_PREFIX} {contact_name} {position}"
+            return f"{ENTITY_PREFIX} {self._device.name} {position}"
         
-        return f"{ENTITY_PREFIX} {contact_name}"
+        return f"{ENTITY_PREFIX} {self._device.name}"
 
     @property
     def icon(self):
@@ -141,6 +133,15 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        # If group_lights_with_room is enabled, attach light to the room device
+        if self._data.group_lights_with_room and self._device.room_id:
+            return {
+                "name": get_device_name(self._data, self._device.room_id, "room"),
+                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
+                "manufacturer": MANUFACTURER,
+                "model": "Room",
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},

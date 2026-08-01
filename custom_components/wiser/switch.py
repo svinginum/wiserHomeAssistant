@@ -118,6 +118,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     wiser_switches = []
     for switch in WISER_SWITCHES:
         if switch["type"] == "room":
+            if not data.enable_heating_entities:
+                continue
             for room in [
                 room for room in data.wiserhub.rooms.all if len(room.devices) > 0
             ]:
@@ -215,7 +217,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
                 )
 
     # Add Room passive mode switches
-    if data.enable_automations_passive_mode:
+    if data.enable_heating_entities and data.enable_automations_passive_mode:
         for room in data.wiserhub.rooms.all:
             if room.number_of_smartvalves > 0:
                 wiser_switches.append(

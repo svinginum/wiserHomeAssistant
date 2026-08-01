@@ -110,13 +110,14 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
             wiser_sensors.append(WiserMomentStateSensor(data, moment.id))
 
     # Add operation sensor
-    _LOGGER.debug("Setting up Heating Operation Mode sensor")
-    wiser_sensors.append(
-        WiserSystemOperationModeSensor(data, sensor_type="Heating Operation Mode")
-    )
+    if data.enable_heating_entities:
+        _LOGGER.debug("Setting up Heating Operation Mode sensor")
+        wiser_sensors.append(
+            WiserSystemOperationModeSensor(data, sensor_type="Heating Operation Mode")
+        )
 
     # Add heating circuit sensor
-    if data.wiserhub.heating_channels:
+    if data.enable_heating_entities and data.wiserhub.heating_channels:
         _LOGGER.debug("Setting up Heating Circuit sensors")
         for heating_channel in data.wiserhub.heating_channels.all:
             wiser_sensors.append(
@@ -129,7 +130,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
 
     # Add opentherm flow & return temps
     if (
-        data.wiserhub.system.opentherm.connection_status == "Connected"
+        data.enable_heating_entities
+        and data.wiserhub.system.opentherm.connection_status == "Connected"
         and data.wiserhub.system.opentherm.enabled
         ):
         _LOGGER.debug("Setting up Opentherm sensors")
@@ -226,21 +228,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
                 )
 
     # Add LTS sensors - for room temp and target temp
-    _LOGGER.debug("Setting up LTS sensors")
-    for room in data.wiserhub.rooms.all:
-        if room.devices:
-            wiser_sensors.extend(
-                [
-                    WiserLTSTempSensor(data, room.id, sensor_type="current_temp"),
-                    WiserLTSTempSensor(
-                        data, room.id, sensor_type="current_target_temp"
-                    ),
-                    WiserLTSDemandSensor(data, room.id, "room"),
-                ]
-            )
+    if data.enable_heating_entities:
+        _LOGGER.debug("Setting up LTS sensors")
+        for room in data.wiserhub.rooms.all:
+            if room.devices:
+                wiser_sensors.extend(
+                    [
+                        WiserLTSTempSensor(data, room.id, sensor_type="current_temp"),
+                        WiserLTSTempSensor(
+                            data, room.id, sensor_type="current_target_temp"
+                        ),
+                        WiserLTSDemandSensor(data, room.id, "room"),
+                    ]
+                )
 
-            if room.roomstat_id:
-                wiser_sensors.append(WiserLTSHumiditySensor(data, room.roomstat_id))
+                if room.roomstat_id:
+                    wiser_sensors.append(WiserLTSHumiditySensor(data, room.roomstat_id))
 
     # Add temp sensors for smoke alarms
     wiser_sensors.extend(
@@ -253,19 +256,20 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     )
 
     # Add temp sensors for ITRVs
-    _LOGGER.debug("Setting up smartvalve remperature sensors")
-    wiser_sensors.extend(
-        WiserLTSTempSensor(
-            data,
-            device.id,
-            sensor_type="smartvalve_temp",
+    if data.enable_heating_entities:
+        _LOGGER.debug("Setting up smartvalve remperature sensors")
+        wiser_sensors.extend(
+            WiserLTSTempSensor(
+                data,
+                device.id,
+                sensor_type="smartvalve_temp",
+            )
+            for device in data.wiserhub.devices.smartvalves.all
         )
-        for device in data.wiserhub.devices.smartvalves.all
-    )
 
 
     # Add LTS sensors - for room Power and Energy for heating actuators
-    if data.wiserhub.devices.heating_actuators:
+    if data.enable_heating_entities and data.wiserhub.devices.heating_actuators:
         _LOGGER.debug("Setting up Heating Actuator LTS sensors")
         for heating_actuator in data.wiserhub.devices.heating_actuators.all:
         # Add a sensor equipment for heating actuators

@@ -95,6 +95,12 @@ CONF_AUTOMATIONS_HW_BOOST_MODE = "hotwater_boost_mode"
 CONF_AUTOMATIONS_HW_SENSOR_ENTITY_ID = "hotwater_sensor_entity_id"
 CONF_DEPRECATED_HW_TARGET_TEMP = "hotwater_target_temperature"
 
+# Display Options
+CONF_ENABLE_HEATING_ENTITIES = "enable_heating_entities"
+CONF_GROUP_LIGHTS_WITH_ROOM = "group_lights_with_room"
+DEFAULT_ENABLE_HEATING_ENTITIES = True
+DEFAULT_GROUP_LIGHTS_WITH_ROOM = False
+
 # Custom Attributes
 ATTR_OPENTHERM_ENDPOINT = "endpoint"
 ATTR_OPENTHERM_PARAM = "parameter"

@@ -44,6 +44,8 @@ from .const import (
     CONF_AUTOMATIONS_HW_SENSOR_ENTITY_ID,
     CONF_AUTOMATIONS_PASSIVE,
     CONF_AUTOMATIONS_PASSIVE_TEMP_INCREMENT,
+    CONF_ENABLE_HEATING_ENTITIES,
+    CONF_GROUP_LIGHTS_WITH_ROOM,
     CONF_HEATING_BOOST_TEMP,
     CONF_HEATING_BOOST_TIME,
     CONF_HOSTNAME,
@@ -53,6 +55,8 @@ from .const import (
     CUSTOM_DATA_STORE,
     DEFAULT_BOOST_TEMP,
     DEFAULT_BOOST_TEMP_TIME,
+    DEFAULT_ENABLE_HEATING_ENTITIES,
+    DEFAULT_GROUP_LIGHTS_WITH_ROOM,
     DEFAULT_PASSIVE_TEMP_INCREMENT,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -317,6 +321,18 @@ class WiserOptionsFlowHandler(config_entries.OptionsFlow):
                     }
                 }
             ),
+            vol.Optional(
+                CONF_ENABLE_HEATING_ENTITIES,
+                default=self.config_entry.options.get(
+                    CONF_ENABLE_HEATING_ENTITIES, DEFAULT_ENABLE_HEATING_ENTITIES
+                ),
+            ): bool,
+            vol.Optional(
+                CONF_GROUP_LIGHTS_WITH_ROOM,
+                default=self.config_entry.options.get(
+                    CONF_GROUP_LIGHTS_WITH_ROOM, DEFAULT_GROUP_LIGHTS_WITH_ROOM
+                ),
+            ): bool,
         }
         return self.async_show_form(
             step_id="main_params", data_schema=vol.Schema(data_schema)
