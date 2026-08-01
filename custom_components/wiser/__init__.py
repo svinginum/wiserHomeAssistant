@@ -170,7 +170,7 @@ async def async_update_device_registry(hass: HomeAssistant, config_entry):
 
 
 async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
-    """Remove devices that should no longer exist based on current options."""
+    """Remove devices and entities that should no longer exist based on current options."""
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
 
@@ -182,25 +182,42 @@ async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
         if device.model == "Controller":
             continue
 
+        should_remove = False
+
         # If heating is disabled, remove Room devices
         if not coordinator.enable_heating_entities and device.model == "Room":
             _LOGGER.debug(f"Removing room device: {device.name} (heating disabled)")
-            # Remove all entities for this device first
-            entities = er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True)
-            for entity in entities:
-                entity_registry.async_remove(entity.entity_id)
-            device_registry.async_remove_device(device.id)
-            continue
+            should_remove = True
 
         # If group_lights_with_room is enabled, remove separate light devices
-        # (their entities will be re-created under the room device)
-        if coordinator.group_lights_with_room and device.model in ("OnOffLight", "DimmableLight", "LK Switch"):
+        if coordinator.group_lights_with_room and device.model in (
+            "OnOffLight", "DimmableLight", "LK Switch", "1G 2W Light Switch",
+            "2G 2W Light Switch",
+        ):
             _LOGGER.debug(f"Removing light device: {device.name} (grouped with room)")
-            entities = er.async_entries_for_device(entity_registry, device.id, include_disabled_entities=True)
+            should_remove = True
+
+        if should_remove:
+            # Remove all entities for this device first
+            entities = er.async_entries_for_device(
+                entity_registry, device.id, include_disabled_entities=True
+            )
             for entity in entities:
                 entity_registry.async_remove(entity.entity_id)
             device_registry.async_remove_device(device.id)
-            continue
+
+    # Also remove orphaned entities that are no longer created
+    # (entities belonging to this config entry with no matching platform)
+    if not coordinator.enable_heating_entities:
+        all_entities = er.async_entries_for_config_entry(entity_registry, config_entry.entry_id)
+        heating_prefixes = (
+            "climate.", "sensor.wiser_lts_heating", "sensor.wiser_lts_target_temperature",
+            "sensor.wiser_lts_temperature", "sensor.wiser_heating",
+        )
+        for entity in all_entities:
+            if entity.entity_id.startswith(heating_prefixes):
+                _LOGGER.debug(f"Removing orphaned heating entity: {entity.entity_id}")
+                entity_registry.async_remove(entity.entity_id)
 
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):
