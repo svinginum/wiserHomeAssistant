@@ -10,6 +10,32 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
+def flatten_device_list(devices):
+    """Flatten nested device lists from multi-contact devices (e.g. 2-gang relays).
+
+    The API may return nested lists for multi-contact devices.
+    This ensures we always get a flat list of individual device objects.
+    """
+    flat = []
+    for item in devices:
+        if isinstance(item, list):
+            flat.extend(flatten_device_list(item))
+        else:
+            flat.append(item)
+    return flat
+
+
+def get_single_device(device):
+    """Unwrap a device result that may be a list (multi-contact device).
+
+    Returns the first device from the list, or the device itself if not a list.
+    Returns None if the list is empty.
+    """
+    if isinstance(device, list):
+        return device[0] if device else None
+    return device
+
+
 def hub_error_handler(func):
     """Decorator to handle hub errors"""
 
@@ -28,11 +54,7 @@ def hub_error_handler(func):
 
 def get_device_name(data, device_id, device_type="device"):
     if device_type == "device":
-        device = data.wiserhub.devices.get_by_id(device_id)
-        
-        # Handle multi-contact devices that return lists
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
+        device = get_single_device(data.wiserhub.devices.get_by_id(device_id))
         
         if device_id == 0:
             return f"{ENTITY_PREFIX} HeatHub ({data.wiserhub.system.name})"
@@ -121,11 +143,7 @@ def get_identifier(data, device_id, device_type="device"):
 
 
 def get_unique_id(data, component_type, component_id, device_id=0):
-    device = data.wiserhub.devices.get_by_id(device_id) if device_id else None
-    
-    # Handle multi-contact devices that return lists
-    if isinstance(device, list):
-        device = device[0] if len(device) > 0 else None
+    device = get_single_device(data.wiserhub.devices.get_by_id(device_id)) if device_id else None
     
     # Include endpoint for multi-contact devices
     if device and hasattr(device, 'endpoint') and device.endpoint:

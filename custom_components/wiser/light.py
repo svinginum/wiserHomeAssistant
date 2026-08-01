@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DATA, DOMAIN, MANUFACTURER_SCHNEIDER, ENTITY_PREFIX
-from .helpers import get_device_name, get_identifier, get_unique_id, hub_error_handler
+from .helpers import get_device_name, get_identifier, get_unique_id, hub_error_handler, flatten_device_list
 from .schedules import WiserScheduleEntity
 
 MANUFACTURER = MANUFACTURER_SCHNEIDER
@@ -28,19 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     if data.wiserhub.devices.lights:
         _LOGGER.debug("Setting up light entities")
         
-        def flatten_lights(items):
-            """Recursively flatten nested lists of lights."""
-            flat_list = []
-            for item in items:
-                if isinstance(item, list):
-                    flat_list.extend(flatten_lights(item))
-                else:
-                    flat_list.append(item)
-            return flat_list
-        
-        all_lights = flatten_lights(data.wiserhub.devices.lights.all)
-        
-        for light in all_lights:
+        for light in flatten_device_list(data.wiserhub.devices.lights.all):
             try:
                 _LOGGER.warning(f"Processing light: ID={light.id}, Name={light.name}, Endpoint={getattr(light, 'endpoint', 'N/A')}, Dimmable={light.is_dimmable}")
                 if light.is_dimmable:

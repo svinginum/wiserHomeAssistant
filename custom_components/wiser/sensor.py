@@ -43,7 +43,7 @@ from .const import (
     SIGNAL_STRENGTH_ICONS,
     VERSION,
 )
-from .helpers import get_device_name, get_unique_id, get_identifier
+from .helpers import get_device_name, get_unique_id, get_identifier, flatten_device_list, get_single_device
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,8 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
     if data.wiserhub.devices:
         for device in data.wiserhub.devices.all:
             # Handle multi-contact devices
-            device_list = device if isinstance(device, list) else [device]
-            for dev in device_list:
+            for dev in flatten_device_list([device]):
                 wiser_sensors.append(
                     WiserDeviceSignalSensor(data, dev.id, dev.product_type)
                 )
@@ -450,11 +449,7 @@ class WiserDeviceSignalSensor(WiserSensor):
         if self._device_id == 0:
             self._device = self._data.wiserhub.system
         else:
-            device = self._data.wiserhub.devices.get_by_id(self._device_id)
-            # Handle multi-contact devices
-            if isinstance(device, list):
-                device = device[0] if len(device) > 0 else None
-            self._device = device
+            self._device = get_single_device(self._data.wiserhub.devices.get_by_id(self._device_id))
         
         if self._device:
             self._state = self._device.signal.displayed_signal_strength
@@ -466,11 +461,7 @@ class WiserDeviceSignalSensor(WiserSensor):
         if self._device_id == 0:
             self._device = self._data.wiserhub.system
         else:
-            device = self._data.wiserhub.devices.get_by_id(self._device_id)
-            # Handle multi-contact devices
-            if isinstance(device, list):
-                device = device[0] if len(device) > 0 else None
-            self._device = device
+            self._device = get_single_device(self._data.wiserhub.devices.get_by_id(self._device_id))
         
         if self._device:
             self._state = self._device.signal.displayed_signal_strength

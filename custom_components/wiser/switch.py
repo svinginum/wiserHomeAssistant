@@ -23,6 +23,8 @@ from .helpers import (
     get_room_name,
     get_unique_id,
     hub_error_handler,
+    flatten_device_list,
+    get_single_device,
 )
 from custom_components.wiser.schedules import WiserScheduleEntity
 
@@ -146,19 +148,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
                 )
 
     # Add Lights (if any)
-    def flatten_lights(items):
-        """Recursively flatten nested lists."""
-        flat_list = []
-        for item in items:
-            if isinstance(item, list):
-                flat_list.extend(flatten_lights(item))
-            else:
-                flat_list.append(item)
-        return flat_list
-
-    all_lights = flatten_lights(data.wiserhub.devices.lights.all)
-
-    for light in all_lights:
+    for light in flatten_device_list(data.wiserhub.devices.lights.all):
         try:
             wiser_switches.extend(
                 [WiserLightAwayActionSwitch(data, light.id, f"Wiser {light.name}")]
@@ -639,11 +629,7 @@ class WiserLightAwayActionSwitch(WiserSwitch):
         self._name = name
         self._light_id = LightId
         super().__init__(data, name, "", "light", "mdi:lightbulb-off-outline")
-        device = self._data.wiserhub.devices.get_by_id(self._light_id)
-        # Handle multi-contact devices
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._light = device
+        self._light = get_single_device(self._data.wiserhub.devices.get_by_id(self._light_id))
         if self._light:
             self._is_on = True if self._light.away_mode_action == "Off" else False
 
@@ -651,11 +637,7 @@ class WiserLightAwayActionSwitch(WiserSwitch):
     def _handle_coordinator_update(self) -> None:
         """Async Update to HA."""
         super()._handle_coordinator_update()
-        device = self._data.wiserhub.devices.get_by_id(self._light_id)
-        # Handle multi-contact devices
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._light = device
+        self._light = get_single_device(self._data.wiserhub.devices.get_by_id(self._light_id))
         if self._light:
             self._is_on = True if self._light.away_mode_action == "Off" else False
         self.async_write_ha_state()

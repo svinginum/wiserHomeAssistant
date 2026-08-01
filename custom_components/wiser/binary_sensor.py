@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DATA, DOMAIN, MANUFACTURER
-from .helpers import get_device_name, get_identifier, get_room_name, get_unique_id
+from .helpers import get_device_name, get_identifier, get_room_name, get_unique_id, flatten_device_list, get_single_device
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,19 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
         )
 
     # Light sensors
-    def flatten_devices(items):
-        """Recursively flatten nested lists."""
-        flat_list = []
-        for item in items:
-            if isinstance(item, list):
-                flat_list.extend(flatten_devices(item))
-            else:
-                flat_list.append(item)
-        return flat_list
-
-    all_lights = flatten_devices(data.wiserhub.devices.lights.all)
-
-    for device in all_lights:
+    for device in flatten_device_list(data.wiserhub.devices.lights.all):
         try:
             binary_sensors.extend(
                 [
@@ -115,11 +103,7 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._data = coordinator
-        device = self._data.wiserhub.devices.get_by_id(device_id)
-        # Handle multi-contact devices returning lists
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._device = device
+        self._device = get_single_device(self._data.wiserhub.devices.get_by_id(device_id))
         self._device_id = device_id
         self._device_name = None
         self._sensor_type = sensor_type
@@ -147,11 +131,7 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         _LOGGER.debug(f"{self.name} device update requested")
-        device = self._data.wiserhub.devices.get_by_id(self._device_id)
-        # Handle multi-contact devices
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._device = device
+        self._device = get_single_device(self._data.wiserhub.devices.get_by_id(self._device_id))
         
         if self._device is None:
             return

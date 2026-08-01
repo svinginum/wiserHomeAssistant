@@ -8,7 +8,7 @@ from .const import (
     MANUFACTURER,
 )
 
-from .helpers import get_device_name, get_unique_id, get_identifier, hub_error_handler
+from .helpers import get_device_name, get_unique_id, get_identifier, hub_error_handler, flatten_device_list, get_single_device
 from .schedules import WiserScheduleEntity
 
 from homeassistant.components.select import SelectEntity
@@ -35,19 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry, async_add_entitie
 
     if data.wiserhub.devices.lights.count > 0:
         _LOGGER.debug("Setting up Light mode select")
-        def flatten_lights(items):
-            """Recursively flatten nested lists of lights."""
-            flat_list = []
-            for item in items:
-                if isinstance(item, list):
-                    flat_list.extend(flatten_lights(item))
-                else:
-                    flat_list.append(item)
-            return flat_list
-
-        all_lights = flatten_lights(data.wiserhub.devices.lights.all)
-
-        for light in all_lights:
+        for light in flatten_device_list(data.wiserhub.devices.lights.all):
             try:
                 _LOGGER.debug(f"Processing light select: ID={light.id}, Name={light.name}")
                 wiser_selects.extend([WiserLightModeSelect(data, light.id)])
@@ -245,11 +233,7 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
         """Initialize the sensor."""
         self._device_id = light_id
         super().__init__(data)
-        device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
-        # Handle multi-contact devices returning lists
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._device = device
+        self._device = get_single_device(self._data.wiserhub.devices.lights.get_by_id(self._device_id))
         if self._device is None:
             _LOGGER.error(f"No light device found for ID {self._device_id}")
             return
@@ -260,10 +244,7 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
     def _handle_coordinator_update(self) -> None:
         """Fetch new state data for the sensor."""
         super()._handle_coordinator_update()
-        device = self._data.wiserhub.devices.lights.get_by_id(self._device_id)
-        if isinstance(device, list):
-            device = device[0] if len(device) > 0 else None
-        self._device = device
+        self._device = get_single_device(self._data.wiserhub.devices.lights.get_by_id(self._device_id))
         if self._device:
             self._schedule = self._device.schedule
         self.async_write_ha_state()
