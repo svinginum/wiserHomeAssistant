@@ -219,6 +219,18 @@ async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
                 _LOGGER.debug(f"Removing orphaned heating entity: {entity.entity_id}")
                 entity_registry.async_remove(entity.entity_id)
 
+    # Remove devices that have no entities (orphaned by rename or option change)
+    devices = dr.async_entries_for_config_entry(device_registry, config_entry.entry_id)
+    for device in devices:
+        if device.model == "Controller":
+            continue
+        entities = er.async_entries_for_device(
+            entity_registry, device.id, include_disabled_entities=True
+        )
+        if not entities:
+            _LOGGER.debug(f"Removing empty device: {device.name}")
+            device_registry.async_remove_device(device.id)
+
 
 async def _async_update_listener(hass: HomeAssistant, config_entry):
     """Handle options update."""
