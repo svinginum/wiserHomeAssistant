@@ -1,4 +1,8 @@
-# Wiser Home Assistant Integration v3.4.20
+# Wiser Home Assistant Integration v3.4.20 (Fork)
+
+> **Note:** This is a personal fork of [asantaga/wiserHomeAssistantPlatform](https://github.com/asantaga/wiserHomeAssistantPlatform).
+> It includes additional fixes and features for my own setup (e.g. 2-gang relay support, moments as sensors, custom scan interval).
+> For the official integration, please refer to the [upstream repository](https://github.com/asantaga/wiserHomeAssistantPlatform).
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![downloads](https://shields.io/github/downloads/asantaga/wiserHomeAssistantPlatform/latest/total?style=for-the-badge)](https://github.com/asantaga/wiserHomeAssistantPlatform)
