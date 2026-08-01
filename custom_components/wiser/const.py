@@ -97,7 +97,7 @@ CONF_DEPRECATED_HW_TARGET_TEMP = "hotwater_target_temperature"
 
 # Display Options
 CONF_ENABLE_HEATING_ENTITIES = "enable_heating_entities"
-CONF_GROUP_LIGHTS_WITH_ROOM = "group_lights_with_room"
+CONF_GROUP_LIGHTS_WITH_ROOM = "group_by_room"
 DEFAULT_ENABLE_HEATING_ENTITIES = True
 DEFAULT_GROUP_LIGHTS_WITH_ROOM = False
 

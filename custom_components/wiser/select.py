@@ -8,7 +8,7 @@ from .const import (
     MANUFACTURER,
 )
 
-from .helpers import get_device_name, get_unique_id, get_identifier, hub_error_handler, flatten_device_list, get_single_device
+from .helpers import get_device_name, get_unique_id, get_identifier, hub_error_handler, flatten_device_list, get_single_device, get_room_device_info
 from .schedules import WiserScheduleEntity
 
 from homeassistant.components.select import SelectEntity
@@ -119,6 +119,10 @@ class WiserSelectEntity(CoordinatorEntity, SelectEntity):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -249,19 +253,6 @@ class WiserLightModeSelect(WiserSelectEntity, WiserScheduleEntity):
             self._schedule = self._device.schedule
         self.async_write_ha_state()
 
-    @property
-    def device_info(self):
-        """Return device specific attributes."""
-        if self._data.group_lights_with_room and self._device and self._device.room_id:
-            return {
-                "name": get_device_name(self._data, self._device.room_id, "room"),
-                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
-                "manufacturer": MANUFACTURER,
-                "model": "Room",
-                "via_device": (DOMAIN, self._data.wiserhub.system.name),
-            }
-        return super().device_info
-
 
 class WiserShutterModeSelect(WiserSelectEntity, WiserScheduleEntity):
     def __init__(self, data, shutter_id) -> None:
@@ -327,19 +318,6 @@ class WiserLightPowerOnBehaviourSelect(WiserSelectEntity):
                 f"{option} is not a valid {self.name}.  Please choose from {self._options}"
             )
 
-    @property
-    def device_info(self):
-        """Return device specific attributes."""
-        if self._data.group_lights_with_room and self._device and self._device.room_id:
-            return {
-                "name": get_device_name(self._data, self._device.room_id, "room"),
-                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
-                "manufacturer": MANUFACTURER,
-                "model": "Room",
-                "via_device": (DOMAIN, self._data.wiserhub.system.name),
-            }
-        return super().device_info
-
 
 class WiserLightLedIndicatorSelect(WiserSelectEntity):
     def __init__(self, data, light_id) -> None:
@@ -386,16 +364,3 @@ class WiserLightLedIndicatorSelect(WiserSelectEntity):
             _LOGGER.error(
                 f"{option} is not a valid {self.name}.  Please choose from {self._options}"
             )
-
-    @property
-    def device_info(self):
-        """Return device specific attributes."""
-        if self._data.group_lights_with_room and self._device and self._device.room_id:
-            return {
-                "name": get_device_name(self._data, self._device.room_id, "room"),
-                "identifiers": {(DOMAIN, get_identifier(self._data, self._device.room_id, "room"))},
-                "manufacturer": MANUFACTURER,
-                "model": "Room",
-                "via_device": (DOMAIN, self._data.wiserhub.system.name),
-            }
-        return super().device_info

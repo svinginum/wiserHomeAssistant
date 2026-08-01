@@ -154,6 +154,28 @@ def get_room_name(data, room_id):
     return f"{ENTITY_PREFIX} {data.wiserhub.rooms.get_by_id(room_id).name}"
 
 
+def get_room_device_info(data, room_id):
+    """Return device_info dict that groups an entity with its Wiser room device.
+
+    Use this when group_by_room is enabled to attach entities to the room device card.
+    Returns None if the device has no room or the option is off.
+    """
+    if not data.group_lights_with_room:
+        return None
+    if not room_id:
+        return None
+    room = data.wiserhub.rooms.get_by_id(room_id)
+    if not room:
+        return None
+    return {
+        "name": f"{ENTITY_PREFIX} {room.name}",
+        "identifiers": {(DOMAIN, f"{data.wiserhub.system.name} {ENTITY_PREFIX} {room.name}")},
+        "manufacturer": "Drayton Wiser",
+        "model": "Room",
+        "via_device": (DOMAIN, data.wiserhub.system.name),
+    }
+
+
 def get_instance_count(hass: HomeAssistant) -> int:
     entries = [
         entry

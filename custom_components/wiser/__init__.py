@@ -184,18 +184,25 @@ async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
 
         should_remove = False
 
-        # If heating is disabled, remove Room devices
-        if not coordinator.enable_heating_entities and device.model == "Room":
+        # If heating is disabled, remove Room devices (but keep them if lights are grouped with room)
+        if (
+            not coordinator.enable_heating_entities
+            and device.model == "Room"
+            and not coordinator.group_lights_with_room
+        ):
             _LOGGER.debug(f"Removing room device: {device.name} (heating disabled)")
             should_remove = True
 
-        # If group_lights_with_room is enabled, remove separate light devices
-        if coordinator.group_lights_with_room and device.model in (
-            "OnOffLight", "DimmableLight", "LK Switch", "1G 2W Light Switch",
-            "2G 2W Light Switch",
-        ):
-            _LOGGER.debug(f"Removing light device: {device.name} (grouped with room)")
-            should_remove = True
+        # If group_by_room is enabled, remove separate device cards
+        # (entities will be re-created under the room device)
+        if coordinator.group_lights_with_room and not should_remove:
+            entities = er.async_entries_for_device(
+                entity_registry, device.id, include_disabled_entities=True
+            )
+            # Any device with entities that has a non-Room/Controller model should be removed
+            if entities and device.model not in ("Room", "Controller"):
+                _LOGGER.debug(f"Removing device: {device.name} (grouped with room)")
+                should_remove = True
 
         if should_remove:
             # Remove all entities for this device first

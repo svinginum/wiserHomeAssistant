@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DATA, DOMAIN, MANUFACTURER
-from .helpers import get_device_name, get_identifier, get_room_name, get_unique_id, flatten_device_list, get_single_device
+from .helpers import get_device_name, get_identifier, get_room_name, get_unique_id, flatten_device_list, get_single_device, get_room_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,6 +166,10 @@ class BaseBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
