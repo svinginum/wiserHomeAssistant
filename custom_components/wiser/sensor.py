@@ -429,7 +429,8 @@ class WiserBatterySensor(WiserSensor):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{get_device_name(self._data, self._device_id)} {self._sensor_type}"
+        device_name = self._device.name if self._device and hasattr(self._device, 'name') else get_device_name(self._data, self._device_id)
+        return f"{device_name} {self._sensor_type}"
 
     @property
     def device_info(self):
@@ -492,7 +493,8 @@ class WiserDeviceSignalSensor(WiserSensor):
                 f"{get_device_name(self._data, self._device_id, 'HeatHub')} "
                 f"{self._data.wiserhub.system.name} Signal"
             )
-        return f"{get_device_name(self._data, self._device_id)} Signal"
+        device_name = self._device.name if self._device and hasattr(self._device, 'name') else get_device_name(self._data, self._device_id)
+        return f"{device_name} Signal"
 
     @property
     def device_info(self):
