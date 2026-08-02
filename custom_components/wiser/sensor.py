@@ -43,7 +43,7 @@ from .const import (
     SIGNAL_STRENGTH_ICONS,
     VERSION,
 )
-from .helpers import get_device_name, get_unique_id, get_identifier, flatten_device_list, get_single_device, get_room_device_info
+from .helpers import get_device_name, get_unique_id, get_identifier, flatten_device_list, get_single_device, get_room_device_info, get_energy_center_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1071,6 +1071,10 @@ class WiserCurrentVoltageSensor(WiserSensor):
             room_info = get_room_device_info(self._data, self._device.room_id)
             if room_info:
                 return room_info
+        # Energy devices with no room go to Energy Center
+        energy_info = get_energy_center_device_info(self._data)
+        if energy_info:
+            return energy_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -1704,6 +1708,10 @@ class WiserLTSPowerSensor(WiserSensor):
             room_info = get_room_device_info(self._data, self._device.room_id)
             if room_info:
                 return room_info
+        # PowerTags with no room go to Energy Center
+        energy_info = get_energy_center_device_info(self._data)
+        if energy_info:
+            return energy_info
         return {
             "name": get_device_name(
                 self._data,
@@ -1923,6 +1931,10 @@ class WiserEquipmentSensor(WiserSensor):
             room_info = get_room_device_info(self._data, self._device.room_id)
             if room_info:
                 return room_info
+        # Energy devices with no room go to Energy Center
+        energy_info = get_energy_center_device_info(self._data)
+        if energy_info:
+            return energy_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},

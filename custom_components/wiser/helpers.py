@@ -176,6 +176,23 @@ def get_room_device_info(data, room_id):
     }
 
 
+def get_energy_center_device_info(data):
+    """Return device_info dict for the Energy Center virtual device.
+
+    Groups PowerTags and other energy devices that have no room assignment.
+    Returns None if group_by_room is off.
+    """
+    if not data.group_lights_with_room:
+        return None
+    return {
+        "name": "Energy Center",
+        "identifiers": {(DOMAIN, f"{data.wiserhub.system.name} energy_center")},
+        "manufacturer": "Drayton Wiser",
+        "model": "Energy Center",
+        "via_device": (DOMAIN, data.wiserhub.system.name),
+    }
+
+
 def get_instance_count(hass: HomeAssistant) -> int:
     entries = [
         entry
