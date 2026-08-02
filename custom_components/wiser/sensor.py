@@ -364,7 +364,7 @@ class WiserSensor(CoordinatorEntity, SensorEntity):
         """Return device specific attributes."""
         return {
             "name": get_device_name(self._data, 0),
-            "identifiers": {(DOMAIN, get_identifier(self._data, 0))},
+            "identifiers": {(DOMAIN, self._data.wiserhub.system.name)},
             "manufacturer": MANUFACTURER,
             "model": self._data.wiserhub.system.product_type,
             "sw_version": self._data.wiserhub.system.firmware_version,
@@ -501,6 +501,15 @@ class WiserDeviceSignalSensor(WiserSensor):
             room_info = get_room_device_info(self._data, self._device.room_id)
             if room_info:
                 return room_info
+        if self._device_id == 0:
+            return {
+                "name": get_device_name(self._data, 0),
+                "identifiers": {(DOMAIN, self._data.wiserhub.system.name)},
+                "manufacturer": MANUFACTURER,
+                "model": self._device.product_type,
+                "sw_version": self._device.firmware_version,
+                "via_device": (DOMAIN, self._data.wiserhub.system.name),
+            }
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -1056,6 +1065,10 @@ class WiserCurrentVoltageSensor(WiserSensor):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -1109,6 +1122,10 @@ class WiserSmartplugPower(WiserSensor):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -1256,6 +1273,11 @@ class WiserLTSTempSensor(WiserSensor):
             "threshold_temp",
             "smartvalve_temp",
         ]:
+            device = self._data.wiserhub.devices.get_by_id(self._device_id)
+            if device and hasattr(device, 'room_id'):
+                room_info = get_room_device_info(self._data, device.room_id)
+                if room_info:
+                    return room_info
             return {
                 "name": get_device_name(self._data, self._device_id),
                 "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -1676,6 +1698,10 @@ class WiserLTSPowerSensor(WiserSensor):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(
                 self._data,
@@ -1891,6 +1917,10 @@ class WiserEquipmentSensor(WiserSensor):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        if self._device and hasattr(self._device, 'room_id'):
+            room_info = get_room_device_info(self._data, self._device.room_id)
+            if room_info:
+                return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},

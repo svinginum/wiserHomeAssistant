@@ -226,6 +226,24 @@ async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
                 _LOGGER.debug(f"Removing orphaned heating entity: {entity.entity_id}")
                 entity_registry.async_remove(entity.entity_id)
 
+    # Remove orphaned moment entities (moments deleted from hub)
+    all_entities = er.async_entries_for_config_entry(entity_registry, config_entry.entry_id)
+    active_moment_ids = set()
+    if coordinator.wiserhub.moments:
+        for moment in coordinator.wiserhub.moments.all:
+            active_moment_ids.add(moment.id)
+    for entity in all_entities:
+        if entity.unique_id and "moment_" in entity.unique_id:
+            # Extract moment_id from unique_id like "SystemName-sensor-moment_123-0"
+            try:
+                part = entity.unique_id.split("moment_")[1].split("-")[0]
+                moment_id = int(part)
+                if moment_id not in active_moment_ids:
+                    _LOGGER.debug(f"Removing orphaned moment entity: {entity.entity_id}")
+                    entity_registry.async_remove(entity.entity_id)
+            except (ValueError, IndexError):
+                pass
+
     # Remove devices that have no entities (orphaned by rename or option change)
     devices = dr.async_entries_for_config_entry(device_registry, config_entry.entry_id)
     for device in devices:
