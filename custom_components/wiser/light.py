@@ -113,9 +113,9 @@ class WiserLight(CoordinatorEntity, LightEntity, WiserScheduleEntity):
                 position = "Bottom"
             else:
                 position = f"Ep{self._device.endpoint}"
-            return f"{ENTITY_PREFIX} {self._device.name} {position}"
+            return f"{self._device.name} {position}"
         
-        return f"{ENTITY_PREFIX} {self._device.name}"
+        return self._device.name
 
     @property
     def icon(self):

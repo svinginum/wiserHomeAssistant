@@ -168,7 +168,7 @@ def get_room_device_info(data, room_id):
     if not room:
         return None
     return {
-        "name": f"{ENTITY_PREFIX} {room.name}",
+        "name": room.name,
         "identifiers": {(DOMAIN, f"{data.wiserhub.system.name} {ENTITY_PREFIX} {room.name}")},
         "manufacturer": "Drayton Wiser",
         "model": "Room",
