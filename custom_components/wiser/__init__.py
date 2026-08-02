@@ -205,13 +205,18 @@ async def async_cleanup_devices(hass: HomeAssistant, config_entry, coordinator):
                 should_remove = True
 
         if should_remove:
-            # Remove all entities for this device first
-            entities = er.async_entries_for_device(
-                entity_registry, device.id, include_disabled_entities=True
-            )
-            for entity in entities:
-                entity_registry.async_remove(entity.entity_id)
-            device_registry.async_remove_device(device.id)
+            # For room grouping, don't delete entities - just remove the device
+            # Entities will be reassigned to the room device on next setup
+            if coordinator.group_lights_with_room:
+                device_registry.async_remove_device(device.id)
+            else:
+                # For heating disable, remove entities too (they won't be re-created)
+                entities = er.async_entries_for_device(
+                    entity_registry, device.id, include_disabled_entities=True
+                )
+                for entity in entities:
+                    entity_registry.async_remove(entity.entity_id)
+                device_registry.async_remove_device(device.id)
 
     # Also remove orphaned entities that are no longer created
     # (entities belonging to this config entry with no matching platform)
