@@ -515,6 +515,9 @@ class WiserSmartPlugSwitch(WiserSwitch, WiserScheduleEntity):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        room_info = get_room_device_info(self._data, self._device.room_id)
+        if room_info:
+            return room_info
         return {
             "name": get_device_name(self._data, self._device_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._device_id))},
@@ -600,6 +603,9 @@ class WiserSmartPlugAwayActionSwitch(WiserSwitch):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        room_info = get_room_device_info(self._data, self._smartplug.room_id)
+        if room_info:
+            return room_info
         return {
             "name": get_device_name(self._data, self._smart_plug_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._smart_plug_id))},
@@ -722,6 +728,9 @@ class WiserShutterAwayActionSwitch(WiserSwitch):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        room_info = get_room_device_info(self._data, self._shutter.room_id)
+        if room_info:
+            return room_info
         return {
             "name": get_device_name(self._data, self._shutter_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._shutter_id))},
@@ -848,6 +857,9 @@ class WiserShutterSummerComfortSwitch(WiserSwitch):
     @property
     def device_info(self):
         """Return device specific attributes."""
+        room_info = get_room_device_info(self._data, self._shutter.room_id)
+        if room_info:
+            return room_info
         return {
             "name": get_device_name(self._data, self._shutter_id),
             "identifiers": {(DOMAIN, get_identifier(self._data, self._shutter_id))},
